@@ -1,6 +1,7 @@
 .idea/
 bin/
 obj/
-wwwroot/
+Faross/wwwroot/lib/
 Faross/Logs/
-
+.vscode/
+*.min.*
