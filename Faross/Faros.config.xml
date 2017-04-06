@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<config>
+    <environments>
+        <environment id="1" name="SharedHosting"/>
+    </environments>
+
+    <services>
+        <service id="1" name="Tech Blog">
+            <runsOn>
+                <envRef id="1"/>
+            </runsOn>
+        </service>
+    </services>
+
+    <checks>
+        <check id="1" type="HttpCall" method="Get" envRef="1" serviceRef="1" url="http://blog.andrei.rinea.ro" interval="00:05:00">
+            <conditions>
+                <httpCheckCondition type="Status" operator="Equals">200</httpCheckCondition>
+                <httpCheckCondition type="Content" operator="DoesNotContain" arguments="IgnoreCase">error</httpCheckCondition>
+            </conditions>
+        </check>
+    </checks>
+</config>
