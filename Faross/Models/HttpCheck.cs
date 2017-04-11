@@ -30,5 +30,10 @@ namespace Faross.Models
         public IReadOnlyCollection<HttpCheckCondition> Conditions { get; }
         public Uri Url { get; }
         public HttpMethod Method { get; }
+
+        public override TimeSpan GetMaxDuration()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

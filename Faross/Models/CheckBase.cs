@@ -18,5 +18,7 @@ namespace Faross.Models
         public Environment Environment { get; }
         public Service Service { get; }
         public TimeSpan Interval { get; }
+
+        public abstract TimeSpan GetMaxDuration();
     }
 }
