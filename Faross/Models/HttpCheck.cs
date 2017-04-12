@@ -11,6 +11,9 @@ namespace Faross.Models
             Get
         }
 
+        private static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan DefaultReadTimeout = TimeSpan.FromSeconds(35);
+
         public HttpCheck(
             long id,
             Environment environment,
@@ -18,11 +21,15 @@ namespace Faross.Models
             TimeSpan interval,
             Uri url,
             IReadOnlyCollection<HttpCheckCondition> conditions,
-            HttpMethod method) : base(id, environment, service, interval)
+            HttpMethod method,
+            TimeSpan? connectTimeout = null,
+            TimeSpan? readTimeout = null) : base(id, environment, service, interval)
         {
             Url = url ?? throw new ArgumentNullException(nameof(url));
             Conditions = conditions ?? throw new ArgumentNullException(nameof(conditions));
             Method = method;
+            ConnectTimeout = connectTimeout ?? DefaultConnectTimeout;
+            ReadTimeout = readTimeout ?? DefaultReadTimeout;
         }
 
         public override CheckType Type => CheckType.HttpCall;
@@ -30,10 +37,12 @@ namespace Faross.Models
         public IReadOnlyCollection<HttpCheckCondition> Conditions { get; }
         public Uri Url { get; }
         public HttpMethod Method { get; }
+        public TimeSpan ConnectTimeout { get; }
+        public TimeSpan ReadTimeout { get; }
 
         public override TimeSpan GetMaxDuration()
         {
-            throw new NotImplementedException();
+            return ConnectTimeout + ReadTimeout;
         }
     }
 }

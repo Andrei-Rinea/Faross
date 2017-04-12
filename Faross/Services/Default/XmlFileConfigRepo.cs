@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Xml.XPath;
 using Faross.Models;
+using Faross.Util;
 using Environment = Faross.Models.Environment;
 
 namespace Faross.Services.Default
@@ -19,56 +20,6 @@ namespace Faross.Services.Default
             _xmlPath = xmlPath ?? throw new ArgumentNullException(nameof(xmlPath));
         }
 
-        #region utility - TODO : extract
-
-        private static long? GetLongAttributeValue(XPathNavigator navigator, string attributeName)
-        {
-            var stringValue = navigator.GetAttribute(attributeName, "");
-            if (string.IsNullOrWhiteSpace(stringValue)) return null;
-            long longValue;
-            return !long.TryParse(stringValue, out longValue) ? (long?) null : longValue;
-        }
-
-        private static TimeSpan? GetTimeSpanAttributeValue(XPathNavigator navigator, string attributeName)
-        {
-            var stringValue = navigator.GetAttribute(attributeName, "");
-            if (string.IsNullOrWhiteSpace(stringValue)) return null;
-            TimeSpan timeSpanValue;
-            return !TimeSpan.TryParse(stringValue, out timeSpanValue) ? (TimeSpan?) null : timeSpanValue;
-        }
-
-        private static TEnum? GetEnumAttributeValue<TEnum>(XPathNavigator navigator, string attributeName)
-            where TEnum : struct
-        {
-            var stringValue = navigator.GetAttribute(attributeName, "");
-            if (string.IsNullOrWhiteSpace(stringValue)) return null;
-            TEnum enumValue;
-            return !Enum.TryParse(stringValue, out enumValue) ? (TEnum?) null : enumValue;
-        }
-
-        private static string GetStringAttributeValue(XPathNavigator navigator, string attributeName)
-        {
-            return navigator.GetAttribute(attributeName, "");
-        }
-
-        private static Uri GetUriAttributeValue(XPathNavigator navigator, string attributeName)
-        {
-            var stringValue = navigator.GetAttribute(attributeName, "");
-            if (string.IsNullOrWhiteSpace(stringValue)) return null;
-            Uri uriValue;
-            return !Uri.TryCreate(stringValue, UriKind.RelativeOrAbsolute, out uriValue) ? null : uriValue;
-        }
-
-        private static bool? GetBoolAttributeValue(XPathNavigator navigator, string attributeName)
-        {
-            var stringValue = navigator.GetAttribute(attributeName, "");
-            if (string.IsNullOrWhiteSpace(stringValue)) return null;
-            bool boolValue;
-            return !bool.TryParse(stringValue, out boolValue) ? (bool?) null : boolValue;
-        }
-
-        #endregion
-
         // ReSharper disable once ReturnTypeCanBeEnumerable.Local
         private static List<Environment> GetEnvironments(XPathNavigator xPathNavigator)
         {
@@ -77,8 +28,8 @@ namespace Faross.Services.Default
             while (nodes.MoveNext())
             {
                 var crt = nodes.Current;
-                var name = GetStringAttributeValue(crt, "name");
-                var id = GetLongAttributeValue(crt, "id");
+                var name = crt.GetStringAttributeValue("name");
+                var id = crt.GetLongAttributeValue("id");
 
                 if (string.IsNullOrWhiteSpace(name))
                     throw new InvalidDataException("encountered 'environment' element without name attribute value");
@@ -116,11 +67,11 @@ namespace Faross.Services.Default
             {
                 var crt = nodes.Current;
 
-                var id = GetLongAttributeValue(crt, "id");
-                var type = GetEnumAttributeValue<CheckType>(crt, "type");
-                var envRef = GetLongAttributeValue(crt, "envRef");
-                var serviceRef = GetLongAttributeValue(crt, "serviceRef");
-                var interval = GetTimeSpanAttributeValue(crt, "interval");
+                var id = crt.GetLongAttributeValue("id");
+                var type = crt.GetEnumAttributeValue<CheckType>("type");
+                var envRef = crt.GetLongAttributeValue("envRef");
+                var serviceRef = crt.GetLongAttributeValue("serviceRef");
+                var interval = crt.GetTimeSpanAttributeValue("interval");
 
                 if (id == null) throw new InvalidDataException("encountered check without (valid?) id");
                 if (type == null || type.Value == CheckType.Undefined)
@@ -145,37 +96,42 @@ namespace Faross.Services.Default
 
         private static HttpCheck CompleteHttpCheck(XPathNavigator crt, long id, Environment environment, Service service, TimeSpan interval)
         {
-            var method = GetEnumAttributeValue<HttpCheck.HttpMethod>(crt, "method");
-            var url = GetUriAttributeValue(crt, "url");
+            var method = crt.GetEnumAttributeValue<HttpCheck.HttpMethod>("method");
+            var url = crt.GetUriAttributeValue("url");
+            var connectTimeout = crt.GetTimeSpanAttributeValue("connectTimeout");
+            var readTimeout = crt.GetTimeSpanAttributeValue("readTimeout");
+
             if (method == null) throw new InvalidDataException("HttpCall check is missing/has invalid the (HTTP) method");
             if (url == null) throw new InvalidDataException("HttpCall check is missing/has invalid its URL");
+            if (connectTimeout + readTimeout > interval) throw new InvalidDataException("the combined timeouts cannot be larger than the check interval");
 
             var sub = crt.Select("conditions/httpCheckCondition");
             var conditions = new List<HttpCheckCondition>();
             while (sub.MoveNext())
             {
                 var crtSub = sub.Current;
-                var conditionType = GetEnumAttributeValue<HttpCheckConditionType>(crtSub, "type");
-                var @operator = GetEnumAttributeValue<HttpCheckCondition.CheckOperator>(crtSub, "operator");
+                var conditionType = crtSub.GetEnumAttributeValue<HttpCheckConditionType>("type");
+                var @operator = crtSub.GetEnumAttributeValue<HttpCheckCondition.CheckOperator>("operator");
                 if (conditionType == null) throw new InvalidDataException("httpCheckCondition has missing/invalid type");
                 if (@operator == null) throw new InvalidDataException("httpCheckCondition has missing/invalid operator");
 
-                var arguments = GetEnumAttributeValue<HttpCheckCondition.CheckArguments>(crtSub, "arguments") ?? HttpCheckCondition.CheckArguments.None;
+                var arguments = crtSub.GetEnumAttributeValue<HttpCheckCondition.CheckArguments>("arguments") ?? HttpCheckCondition.CheckArguments.None;
                 var value = crtSub.Value;
 
-                var stopOnFail = GetBoolAttributeValue(crtSub, "stopOnFail") ?? false;
+                var stopOnFail = crtSub.GetBoolAttributeValue("stopOnFail") ?? false;
                 var condition = new HttpCheckCondition(conditionType.Value, @operator.Value, arguments, value, stopOnFail);
                 conditions.Add(condition);
             }
             if (conditions.Count == 0) throw new InvalidDataException("HttpCall check has no conditions");
             var roConditions = conditions.AsReadOnly();
-            var check = new HttpCheck(id, environment, service, interval, url, roConditions, method.Value);
+            var check = new HttpCheck(id, environment, service, interval, url, roConditions, method.Value, connectTimeout, readTimeout);
             return check;
         }
 
         private static CheckBase CompleteCheckRead(XPathNavigator crt, long id, CheckType type, Environment environment,
             Service service, TimeSpan interval)
         {
+            // ReSharper disable once SwitchStatementMissingSomeCases
             switch (type)
             {
                 case CheckType.Ping:
@@ -197,8 +153,8 @@ namespace Faross.Services.Default
             while (nodes.MoveNext())
             {
                 var crt = nodes.Current;
-                var name = GetStringAttributeValue(crt, "name");
-                var id = GetLongAttributeValue(crt, "id");
+                var name = crt.GetStringAttributeValue("name");
+                var id = crt.GetLongAttributeValue("id");
 
                 if (string.IsNullOrWhiteSpace(name))
                     throw new InvalidDataException("encountered 'service' element without name attribute value");
@@ -210,7 +166,7 @@ namespace Faross.Services.Default
                 while (subNodes.MoveNext())
                 {
                     var crtSub = subNodes.Current;
-                    var envRefId = GetLongAttributeValue(crtSub, "id");
+                    var envRefId = crtSub.GetLongAttributeValue("id");
                     if (envRefId == null)
                         throw new InvalidDataException("service with id '" + id + "' has environment reference with no id");
                     var environment = environments.SingleOrDefault(e => e.Id == envRefId.Value);
