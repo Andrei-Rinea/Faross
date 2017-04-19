@@ -136,8 +136,6 @@ namespace Faross.Services.Default
             {
                 case CheckType.Ping:
                     throw new NotImplementedException();
-                case CheckType.HttpConnect:
-                    throw new NotImplementedException();
                 case CheckType.HttpCall:
                     return CompleteHttpCheck(crt, id, environment, service, interval);
                 default:

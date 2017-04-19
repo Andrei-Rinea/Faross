@@ -8,5 +8,11 @@
         }
 
         public string Name { get; }
+
+        protected override bool EqualsCore(ModelBase other)
+        {
+            var otherEnv = other as Environment;
+            return otherEnv != null && otherEnv.Name == Name;
+        }
     }
 }

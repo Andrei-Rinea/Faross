@@ -20,5 +20,15 @@ namespace Faross.Models
         public TimeSpan Interval { get; }
 
         public abstract TimeSpan GetMaxDuration();
+
+        protected override bool EqualsCore(ModelBase other)
+        {
+            var otherCheck = other as CheckBase;
+            return otherCheck != null &&
+                   otherCheck.Type == Type &&
+                   otherCheck.Environment.Equals(Environment) &&
+                   otherCheck.Service.Equals(Service) &&
+                   otherCheck.Interval == Interval;
+        }
     }
 }

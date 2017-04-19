@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Faross.Util;
 
 namespace Faross.Models
 {
@@ -12,5 +13,13 @@ namespace Faross.Models
 
         public string Name { get; }
         public IReadOnlyCollection<Environment> RunsOn { get; }
+
+        protected override bool EqualsCore(ModelBase other)
+        {
+            var otherService = other as Service;
+            return otherService != null &&
+                   otherService.Name == Name &&
+                   otherService.RunsOn.Equivalent(RunsOn);
+        }
     }
 }

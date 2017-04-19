@@ -1,4 +1,5 @@
 ﻿using System;
+using Faross.Util;
 
 namespace Faross.Models
 {
@@ -37,5 +38,21 @@ namespace Faross.Models
         public CheckArguments Arguments { get; }
         public string Value { get; }
         public bool StopOnFail { get; }
+
+        public override bool Equals(object obj)
+        {
+            var other = obj as HttpCheckCondition;
+            return other != null &&
+                   other.Type == Type &&
+                   other.Operator == Operator &&
+                   other.Arguments == Arguments &&
+                   other.Value == Value &&
+                   other.StopOnFail == StopOnFail;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCodeUtil.GetCombinedHash(Type, Operator, Arguments, Value, StopOnFail);
+        }
     }
 }

@@ -4,7 +4,6 @@
     {
         Undefined,
         Ping,
-        HttpConnect,
         HttpCall
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Faross.Util;
 
 namespace Faross.Models
 {
@@ -43,6 +44,17 @@ namespace Faross.Models
         public override TimeSpan GetMaxDuration()
         {
             return ConnectTimeout + ReadTimeout;
+        }
+
+        protected override bool EqualsCore(ModelBase other)
+        {
+            var otherCheck = other as HttpCheck;
+            return otherCheck != null &&
+                   otherCheck.Url.Equals(Url) &&
+                   otherCheck.Method == Method &&
+                   otherCheck.ConnectTimeout == ConnectTimeout &&
+                   otherCheck.ReadTimeout == ReadTimeout &&
+                   otherCheck.Conditions.Equivalent(Conditions);
         }
     }
 }

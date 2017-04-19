@@ -50,6 +50,7 @@ namespace Faross.Util
             public GetContentResult(IReadOnlyCollection<KeyValuePair<string, string>> headers, byte[] content)
                 : this(GetContentOutcome.Ok, headers)
             {
+                if (Content == null) throw new ArgumentNullException(nameof(content));
                 Content = content;
             }
 
