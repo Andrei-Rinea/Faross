@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Faross.Util;
 
 namespace Faross.Models
@@ -12,10 +13,14 @@ namespace Faross.Models
             CheckOutcome outcome,
             IReadOnlyCollection<CheckResultDetail> details)
         {
+            if (outcome == default(CheckOutcome)) throw new ArgumentOutOfRangeException(nameof(outcome));
+
             Check = check ?? throw new ArgumentNullException(nameof(check));
             Time = time;
             Outcome = outcome;
-            Details = details;
+            Details = details ?? throw new ArgumentNullException(nameof(details));
+
+            if (Details.Any(d => d == null)) throw new ArgumentException("details contains a null");
         }
 
         public CheckBase Check { get; }

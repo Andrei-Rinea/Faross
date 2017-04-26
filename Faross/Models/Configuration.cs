@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Faross.Util;
 
 namespace Faross.Models
@@ -18,6 +19,10 @@ namespace Faross.Models
             Environments = environments ?? throw new ArgumentNullException(nameof(environments));
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Checks = checks ?? throw new ArgumentNullException(nameof(checks));
+
+            if (Environments.Any(e => e == null)) throw new ArgumentException("enivornments contains a null");
+            if (Services.Any(s => s == null)) throw new ArgumentException("services contains a null");
+            if (Checks.Any(c => c == null)) throw new ArgumentException("checks contains a null");
         }
 
         public override bool Equals(object obj)

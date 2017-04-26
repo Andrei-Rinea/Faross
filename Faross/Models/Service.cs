@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Faross.Util;
 
 namespace Faross.Models
@@ -8,7 +10,9 @@ namespace Faross.Models
         public Service(long id, string name, IReadOnlyCollection<Environment> runsOn) : base(id)
         {
             Name = name;
-            RunsOn = runsOn;
+            RunsOn = runsOn ?? throw new ArgumentNullException(nameof(runsOn));
+
+            if (RunsOn.Any(r => r == null)) throw new ArgumentException("runsOn contains a null");
         }
 
         public string Name { get; }

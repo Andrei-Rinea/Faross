@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Faross.Util;
 
 namespace Faross.Models
@@ -11,10 +13,12 @@ namespace Faross.Models
             byte[] content,
             int status)
         {
-            ResponseHeaders = responseHeaders;
-            ContentType = contentType;
-            Content = content;
+            ResponseHeaders = responseHeaders ?? throw new ArgumentNullException(nameof(responseHeaders));
+            ContentType = contentType ?? throw new ArgumentNullException(nameof(contentType));
+            Content = content ?? throw new ArgumentNullException(nameof(content));
             Status = status;
+
+            if (Status < 100 || Status > 599) throw new ArgumentOutOfRangeException(nameof(status), Status, "");
         }
 
         public IReadOnlyCollection<KeyValuePair<string, string>> ResponseHeaders { get; }

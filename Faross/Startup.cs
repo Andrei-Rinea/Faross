@@ -37,7 +37,7 @@ namespace Faross
 //            var checkLog = new CheckNLogAdapter(logger);
 //            services.AddSingleton<ICheckLog>(checkLog);
 
-            var xmlFileConfigRepo = new XmlFileConfigRepo(new FileService(), "Faros.config.xml");
+            var xmlFileConfigRepo = new XmlFileConfigRepo(new FileService(), "Faross.config.xml");
             var config = xmlFileConfigRepo.GetConfiguration();
         }
 

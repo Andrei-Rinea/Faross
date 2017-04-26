@@ -105,27 +105,70 @@ namespace Faross.Services.Default
             if (url == null) throw new InvalidDataException("HttpCall check is missing/has invalid its URL");
             if (connectTimeout + readTimeout > interval) throw new InvalidDataException("the combined timeouts cannot be larger than the check interval");
 
-            var sub = crt.Select("conditions/httpCheckCondition");
             var conditions = new List<HttpCheckCondition>();
-            while (sub.MoveNext())
+            var conditionsNode = crt.SelectSingleNode("conditions");
+            conditionsNode.MoveToFirstChild();
+            do
             {
-                var crtSub = sub.Current;
-                var conditionType = crtSub.GetEnumAttributeValue<HttpCheckConditionType>("type");
-                var @operator = crtSub.GetEnumAttributeValue<HttpCheckCondition.CheckOperator>("operator");
-                if (conditionType == null) throw new InvalidDataException("httpCheckCondition has missing/invalid type");
-                if (@operator == null) throw new InvalidDataException("httpCheckCondition has missing/invalid operator");
-
-                var arguments = crtSub.GetEnumAttributeValue<HttpCheckCondition.CheckArguments>("arguments") ?? HttpCheckCondition.CheckArguments.None;
-                var value = crtSub.Value;
-
-                var stopOnFail = crtSub.GetBoolAttributeValue("stopOnFail") ?? false;
-                var condition = new HttpCheckCondition(conditionType.Value, @operator.Value, arguments, value, stopOnFail);
+                if (conditionsNode.NodeType != XPathNodeType.Element) continue;
+                var conditionsClone = conditionsNode.Clone();
+                var conditionType = conditionsClone.Name;
+                var attributeStrings = new List<KeyValuePair<string, string>>();
+                var value = conditionsClone.Value;
+                if (conditionsClone.HasAttributes)
+                {
+                    if (conditionsClone.MoveToFirstAttribute())
+                    {
+                        do
+                        {
+                            attributeStrings.Add(new KeyValuePair<string, string>(conditionsClone.Name, conditionsClone.Value));
+                        } while (conditionsClone.MoveToNextAttribute());
+                    }
+                }
+                var condition = GetCondition(conditionType, attributeStrings, value);
                 conditions.Add(condition);
-            }
-            if (conditions.Count == 0) throw new InvalidDataException("HttpCall check has no conditions");
+            } while (conditionsNode.MoveToNext());
             var roConditions = conditions.AsReadOnly();
             var check = new HttpCheck(id, environment, service, interval, url, roConditions, method.Value, connectTimeout, readTimeout);
             return check;
+        }
+
+        private static T? GetEnumValue<T>(IEnumerable<KeyValuePair<string, string>> attributes, string attributeName) where T : struct
+        {
+            var attribute = attributes.SingleOrDefault(a => a.Key == attributeName);
+            if (Equals(attribute, default(KeyValuePair<string, string>))) return null;
+            var value = attribute.Value;
+            T result;
+            if (!Enum.TryParse(value, true, out result)) return null;
+            return result;
+        }
+
+        private static HttpCheckCondition GetCondition(
+            string conditionType,
+            IReadOnlyCollection<KeyValuePair<string, string>> attributes,
+            string value)
+        {
+            var stopOnFail = attributes.Any(p => p.Key == "stopOnFail" && string.Equals(p.Value, "true", StringComparison.OrdinalIgnoreCase));
+            switch (conditionType)
+            {
+                case "statusCheck":
+                {
+                    var op = GetEnumValue<HttpStatusCondition.Operator>(attributes, "operator");
+                    if (op == null) throw new InvalidDataException("HTTP status condition with invalid/missing operator value");
+                    int status;
+                    if (!int.TryParse(value, out status)) throw new InvalidDataException("HTTP status condition with invalid/missing status value");
+                    return new HttpStatusCondition(stopOnFail, op.Value, status);
+                }
+                case "contentCheck":
+                {
+                    var op = GetEnumValue<HttpContentCondition.Operator>(attributes, "operator");
+                    if (op == null) throw new InvalidDataException("HTTP content check with missing/invalid operator value");
+                    var args = GetEnumValue<HttpContentCondition.Arguments>(attributes, "arguments") ?? HttpContentCondition.Arguments.None;
+                    if (value == null) throw new InvalidDataException("HTTP content check with missing value");
+                    return new HttpContentCondition(stopOnFail, op.Value, value, args);
+                }
+                default: throw new InvalidDataException("unknown HTTP condition '" + conditionType + "'");
+            }
         }
 
         private static CheckBase CompleteCheckRead(XPathNavigator crt, long id, CheckType type, Environment environment,

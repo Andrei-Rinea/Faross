@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Faross.Util;
 
 namespace Faross.Models
@@ -26,11 +27,16 @@ namespace Faross.Models
             TimeSpan? connectTimeout = null,
             TimeSpan? readTimeout = null) : base(id, environment, service, interval)
         {
+            if (method == default(HttpMethod)) throw new ArgumentOutOfRangeException(nameof(method));
+            if (interval < TimeSpan.MinValue) throw new ArgumentOutOfRangeException(nameof(interval));
+
             Url = url ?? throw new ArgumentNullException(nameof(url));
             Conditions = conditions ?? throw new ArgumentNullException(nameof(conditions));
             Method = method;
             ConnectTimeout = connectTimeout ?? DefaultConnectTimeout;
             ReadTimeout = readTimeout ?? DefaultReadTimeout;
+
+            if (Conditions.Any(c => c == null)) throw new ArgumentException("conditions contains a null");
         }
 
         public override CheckType Type => CheckType.HttpCall;
