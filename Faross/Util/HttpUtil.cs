@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,6 +31,9 @@ namespace Faross.Util
 
         public class GetContentResult
         {
+            private const string CharacterSetStart = "charset=";
+            private const string CharacterSetStop = ";";
+
             private GetContentResult()
             {
                 Content = new byte[] { };
@@ -39,16 +43,21 @@ namespace Faross.Util
 
             public GetContentResult(
                 GetContentOutcome outcome,
+                int? status = null,
                 IReadOnlyCollection<KeyValuePair<string, string>> headers = null,
                 Exception exception = null) : this()
             {
+                // TODO : Checks
                 Outcome = outcome;
                 Headers = headers ?? Headers;
                 Exception = exception;
+                Status = status;
             }
 
-            public GetContentResult(IReadOnlyCollection<KeyValuePair<string, string>> headers, byte[] content)
-                : this(GetContentOutcome.Ok, headers)
+            public GetContentResult(
+                IReadOnlyCollection<KeyValuePair<string, string>> headers,
+                int status,
+                byte[] content) : this(GetContentOutcome.Ok, status, headers)
             {
                 if (Content == null) throw new ArgumentNullException(nameof(content));
                 Content = content;
@@ -58,12 +67,35 @@ namespace Faross.Util
             public byte[] Content { get; }
             public Exception Exception { get; }
             public GetContentOutcome Outcome { get; }
+            public int? Status { get; }
 
             public bool Ok => Outcome == GetContentOutcome.Ok;
+
+            public Encoding GetEncoding()
+            {
+                var contentTypeHeader = Headers.SingleOrDefault(h => h.Key == "Content-Type");
+                if (Equals(contentTypeHeader, default(KeyValuePair<string, string>))) return null;
+                var value = contentTypeHeader.Value;
+                var startTokenIndex = value.IndexOf(CharacterSetStart, StringComparison.OrdinalIgnoreCase);
+                if (startTokenIndex == -1) return null;
+                var firstPos = startTokenIndex + CharacterSetStart.Length;
+                var endTokenIndex = value.IndexOf(CharacterSetStop, firstPos, StringComparison.OrdinalIgnoreCase);
+                var encodingName = endTokenIndex == -1 ?
+                    value.Substring(firstPos) :
+                    value.Substring(firstPos, endTokenIndex - firstPos + 1);
+                try
+                {
+                    return Encoding.GetEncoding(encodingName);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
         }
 
         public static GetContentResult GetContentFromUrl(Uri url, TimeSpan connectTimeout, TimeSpan readTimeout,
-            int bufferSize, int connectSleepMilliseconds)
+            int bufferSize, int connectSleepMilliseconds, int? maxContentLength = null)
         {
             #region arguments check
 
@@ -80,6 +112,8 @@ namespace Faross.Util
             if (connectSleepMilliseconds < 10)
                 throw new ArgumentOutOfRangeException(nameof(connectSleepMilliseconds),
                     "connectSleepMilliseconds must be equal or larger than 10 (milliseconds)");
+            if (maxContentLength.HasValue && maxContentLength.Value <= 0)
+                throw new ArgumentOutOfRangeException(nameof(maxContentLength), "maxContentLength must be at least 1");
 
             #endregion
 
@@ -104,6 +138,7 @@ namespace Faross.Util
             else
             {
                 var response = requestState.Response;
+                var status = (int) response.StatusCode;
 
                 using (var memoryStream = new MemoryStream())
                 using (var responseStream = response.GetResponseStream())
@@ -124,6 +159,8 @@ namespace Faross.Util
                                 if (cancellationToken.IsCancellationRequested) return;
                                 memoryStream.Write(buffer, 0, read);
                                 if (cancellationToken.IsCancellationRequested) return;
+                                if (maxContentLength.HasValue && memoryStream.Length >= maxContentLength.Value)
+                                    break;
                             }
                             // ReSharper restore AccessToDisposedClosure
                         }
@@ -139,11 +176,11 @@ namespace Faross.Util
                     if (!contentReadInTime)
                     {
                         cancellationTokenSource.Cancel();
-                        return new GetContentResult(GetContentOutcome.ReadTimeout, headers);
+                        return new GetContentResult(GetContentOutcome.ReadTimeout, status, headers);
                     }
                     return contentReadException != null
-                        ? new GetContentResult(GetContentOutcome.ReadError, headers, contentReadException)
-                        : new GetContentResult(headers, memoryStream.ToArray());
+                        ? new GetContentResult(GetContentOutcome.ReadError, status, headers, contentReadException)
+                        : new GetContentResult(headers, status, memoryStream.ToArray());
                 }
             }
         }

@@ -16,6 +16,8 @@ namespace Faross.Models
         private static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(15);
         private static readonly TimeSpan DefaultReadTimeout = TimeSpan.FromSeconds(35);
 
+        internal const int DefaultMaxContentLength = 65536;
+
         public HttpCheck(
             long id,
             Environment environment,
@@ -25,27 +27,29 @@ namespace Faross.Models
             IReadOnlyCollection<HttpCheckCondition> conditions,
             HttpMethod method,
             TimeSpan? connectTimeout = null,
-            TimeSpan? readTimeout = null) : base(id, environment, service, interval)
+            TimeSpan? readTimeout = null,
+            int maxContentLength = DefaultMaxContentLength) : base(id, environment, service, interval, conditions)
         {
             if (method == default(HttpMethod)) throw new ArgumentOutOfRangeException(nameof(method));
             if (interval < TimeSpan.MinValue) throw new ArgumentOutOfRangeException(nameof(interval));
+            if (maxContentLength <= 0) throw new ArgumentOutOfRangeException(nameof(maxContentLength));
 
             Url = url ?? throw new ArgumentNullException(nameof(url));
-            Conditions = conditions ?? throw new ArgumentNullException(nameof(conditions));
             Method = method;
             ConnectTimeout = connectTimeout ?? DefaultConnectTimeout;
             ReadTimeout = readTimeout ?? DefaultReadTimeout;
+            MaxContentLength = maxContentLength;
 
             if (Conditions.Any(c => c == null)) throw new ArgumentException("conditions contains a null");
         }
 
         public override CheckType Type => CheckType.HttpCall;
 
-        public IReadOnlyCollection<HttpCheckCondition> Conditions { get; }
         public Uri Url { get; }
         public HttpMethod Method { get; }
         public TimeSpan ConnectTimeout { get; }
         public TimeSpan ReadTimeout { get; }
+        public int MaxContentLength { get; }
 
         public override TimeSpan GetMaxDuration()
         {

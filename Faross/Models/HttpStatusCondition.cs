@@ -12,7 +12,7 @@ namespace Faross.Models
             NotEqual
         }
 
-        public HttpStatusCondition(bool stopOnFail, Operator op, int status) : base(stopOnFail)
+        public HttpStatusCondition(string name, bool stopOnFail, Operator op, int status) : base(name, stopOnFail)
         {
             if (op == default(Operator)) throw new ArgumentOutOfRangeException(nameof(op));
             if (status < 100 || status > 599) throw new ArgumentOutOfRangeException(nameof(status));

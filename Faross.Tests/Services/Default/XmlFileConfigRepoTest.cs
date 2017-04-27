@@ -27,8 +27,8 @@ namespace Faross.Tests.Services.Default
                     <checks>
                         <check id=""1"" type=""HttpCall"" method=""Get"" envRef=""1"" serviceRef=""1"" url=""http://blog.andrei.rinea.ro"" interval=""00:05:00"">
                             <conditions>
-                                <statusCheck operator=""Equals"">200</statusCheck>
-                                <contentCheck operator=""DoesNotContain"" arguments=""IgnoreCase"">error</contentCheck>
+                                <statusCheck name=""status_OK"" operator=""Equal"">200</statusCheck>
+                                <contentCheck name=""no_error"" operator=""DoesNotContain"" arguments=""IgnoreCase"">error</contentCheck>
                             </conditions>
                         </check>
                     </checks>

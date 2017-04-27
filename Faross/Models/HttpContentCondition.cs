@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using Faross.Util;
 
 namespace Faross.Models
@@ -19,7 +20,13 @@ namespace Faross.Models
             IgnoreCase
         }
 
-        public HttpContentCondition(bool stopOnFail, Operator op, string value, Arguments args) : base(stopOnFail)
+        public HttpContentCondition(
+            string name,
+            bool stopOnFail,
+            Operator op,
+            string value,
+            Arguments args = Arguments.None,
+            Encoding fallbackEncoding = null) : base(name, stopOnFail)
         {
             if (op == default(Operator)) throw new ArgumentOutOfRangeException(nameof(op));
             if (string.IsNullOrEmpty(value)) throw new ArgumentOutOfRangeException(nameof(value));
@@ -27,11 +34,13 @@ namespace Faross.Models
             Op = op;
             Value = value;
             Args = args;
+            FallbackEncoding = fallbackEncoding ?? Encoding.UTF8;
         }
 
         public Arguments Args { get; }
         public string Value { get; }
         public Operator Op { get; }
+        public Encoding FallbackEncoding { get; }
 
         public override HttpCheckConditionType Type => HttpCheckConditionType.Content;
 
@@ -42,7 +51,8 @@ namespace Faross.Models
                    other.StopOnFail == StopOnFail &&
                    other.Args == Args &&
                    other.Op == Op &&
-                   other.Value == Value;
+                   other.Value == Value &&
+                   Equals(other.FallbackEncoding, FallbackEncoding);
         }
 
         public override int GetHashCode()

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.XPath;
 using Faross.Models;
 using Faross.Util;
@@ -72,6 +73,7 @@ namespace Faross.Services.Default
                 var envRef = crt.GetLongAttributeValue("envRef");
                 var serviceRef = crt.GetLongAttributeValue("serviceRef");
                 var interval = crt.GetTimeSpanAttributeValue("interval");
+                var maxContentLength = crt.GetIntAttributeValue("maxContentLength");
 
                 if (id == null) throw new InvalidDataException("encountered check without (valid?) id");
                 if (type == null || type.Value == CheckType.Undefined)
@@ -88,13 +90,19 @@ namespace Faross.Services.Default
                     throw new InvalidDataException("check '" + id + "' refers not found environment");
                 if (service == null) throw new InvalidDataException("check '" + id + "' refers not found service");
 
-                var check = CompleteCheckRead(crt, id.Value, type.Value, environment, service, interval.Value);
+                var check = CompleteCheckRead(crt, id.Value, type.Value, environment, service, interval.Value, maxContentLength);
                 checks.Add(check);
             }
             return checks;
         }
 
-        private static HttpCheck CompleteHttpCheck(XPathNavigator crt, long id, Environment environment, Service service, TimeSpan interval)
+        private static HttpCheck CompleteHttpCheck(
+            XPathNavigator crt,
+            long id,
+            Environment environment,
+            Service service,
+            TimeSpan interval,
+            int? maxContentLength)
         {
             var method = crt.GetEnumAttributeValue<HttpCheck.HttpMethod>("method");
             var url = crt.GetUriAttributeValue("url");
@@ -128,8 +136,20 @@ namespace Faross.Services.Default
                 var condition = GetCondition(conditionType, attributeStrings, value);
                 conditions.Add(condition);
             } while (conditionsNode.MoveToNext());
+
             var roConditions = conditions.AsReadOnly();
-            var check = new HttpCheck(id, environment, service, interval, url, roConditions, method.Value, connectTimeout, readTimeout);
+            var check = new HttpCheck(
+                id,
+                environment,
+                service,
+                interval,
+                url,
+                roConditions,
+                method.Value,
+                connectTimeout,
+                readTimeout,
+                maxContentLength ?? HttpCheck.DefaultMaxContentLength);
+
             return check;
         }
 
@@ -143,12 +163,19 @@ namespace Faross.Services.Default
             return result;
         }
 
+        private static string GetStringValue(IEnumerable<KeyValuePair<string, string>> attributes, string attributeName)
+        {
+            var attribute = attributes.SingleOrDefault(a => a.Key == attributeName);
+            return Equals(attribute, default(KeyValuePair<string, string>)) ? null : attribute.Value;
+        }
+
         private static HttpCheckCondition GetCondition(
             string conditionType,
             IReadOnlyCollection<KeyValuePair<string, string>> attributes,
             string value)
         {
             var stopOnFail = attributes.Any(p => p.Key == "stopOnFail" && string.Equals(p.Value, "true", StringComparison.OrdinalIgnoreCase));
+            var name = attributes.SingleOrDefault(p => p.Key == "name").Value;
             switch (conditionType)
             {
                 case "statusCheck":
@@ -157,7 +184,7 @@ namespace Faross.Services.Default
                     if (op == null) throw new InvalidDataException("HTTP status condition with invalid/missing operator value");
                     int status;
                     if (!int.TryParse(value, out status)) throw new InvalidDataException("HTTP status condition with invalid/missing status value");
-                    return new HttpStatusCondition(stopOnFail, op.Value, status);
+                    return new HttpStatusCondition(name, stopOnFail, op.Value, status);
                 }
                 case "contentCheck":
                 {
@@ -165,14 +192,32 @@ namespace Faross.Services.Default
                     if (op == null) throw new InvalidDataException("HTTP content check with missing/invalid operator value");
                     var args = GetEnumValue<HttpContentCondition.Arguments>(attributes, "arguments") ?? HttpContentCondition.Arguments.None;
                     if (value == null) throw new InvalidDataException("HTTP content check with missing value");
-                    return new HttpContentCondition(stopOnFail, op.Value, value, args);
+                    var encodingString = GetStringValue(attributes, "encoding");
+                    Encoding fallbackEncoding = null;
+                    if (string.IsNullOrEmpty(encodingString))
+                        return new HttpContentCondition(name, stopOnFail, op.Value, value, args);
+                    try
+                    {
+                        fallbackEncoding = Encoding.GetEncoding(encodingString);
+                    }
+                    catch (ArgumentException)
+                    {
+                        throw new InvalidDataException("unknown encoding '" + encodingString + "'");
+                    }
+                    return new HttpContentCondition(name, stopOnFail, op.Value, value, args, fallbackEncoding);
                 }
                 default: throw new InvalidDataException("unknown HTTP condition '" + conditionType + "'");
             }
         }
 
-        private static CheckBase CompleteCheckRead(XPathNavigator crt, long id, CheckType type, Environment environment,
-            Service service, TimeSpan interval)
+        private static CheckBase CompleteCheckRead(
+            XPathNavigator crt,
+            long id,
+            CheckType type,
+            Environment environment,
+            Service service,
+            TimeSpan interval,
+            int? maxContentLength)
         {
             // ReSharper disable once SwitchStatementMissingSomeCases
             switch (type)
@@ -180,7 +225,7 @@ namespace Faross.Services.Default
                 case CheckType.Ping:
                     throw new NotImplementedException();
                 case CheckType.HttpCall:
-                    return CompleteHttpCheck(crt, id, environment, service, interval);
+                    return CompleteHttpCheck(crt, id, environment, service, interval, maxContentLength);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }

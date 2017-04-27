@@ -13,6 +13,14 @@ namespace Faross.Util
             return !long.TryParse(stringValue, out longValue) ? (long?) null : longValue;
         }
 
+        public static int? GetIntAttributeValue(this XPathNavigator navigator, string attributeName)
+        {
+            var stringValue = navigator.GetAttribute(attributeName, "");
+            if (string.IsNullOrWhiteSpace(stringValue)) return null;
+            int longValue;
+            return !int.TryParse(stringValue, out longValue) ? (int?) null : longValue;
+        }
+
         public static TimeSpan? GetTimeSpanAttributeValue(this XPathNavigator navigator, string attributeName)
         {
             var stringValue = navigator.GetAttribute(attributeName, "");

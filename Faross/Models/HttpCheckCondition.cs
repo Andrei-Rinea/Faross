@@ -1,10 +1,8 @@
-﻿using System.Collections.Generic;
-
-namespace Faross.Models
+﻿namespace Faross.Models
 {
-    public abstract class HttpCheckCondition
+    public abstract class HttpCheckCondition : ConditionBase
     {
-        protected HttpCheckCondition(bool stopOnFail)
+        protected HttpCheckCondition(string name, bool stopOnFail) : base(name)
         {
             StopOnFail = stopOnFail;
         }

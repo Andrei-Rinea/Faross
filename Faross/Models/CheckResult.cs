@@ -11,7 +11,7 @@ namespace Faross.Models
             CheckBase check,
             DateTimeOffset time,
             CheckOutcome outcome,
-            IReadOnlyCollection<CheckResultDetail> details)
+            IReadOnlyCollection<ConditionResultDetail> details)
         {
             if (outcome == default(CheckOutcome)) throw new ArgumentOutOfRangeException(nameof(outcome));
 
@@ -26,7 +26,7 @@ namespace Faross.Models
         public CheckBase Check { get; }
         public DateTimeOffset Time { get; }
         public CheckOutcome Outcome { get; }
-        public IReadOnlyCollection<CheckResultDetail> Details { get; }
+        public IReadOnlyCollection<ConditionResultDetail> Details { get; }
 
         public override bool Equals(object obj)
         {
