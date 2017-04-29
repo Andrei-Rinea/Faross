@@ -80,7 +80,7 @@ namespace Faross.Services.Default
                     throw new InvalidDataException("encountered check without (valid?) type");
                 if (envRef == null) throw new InvalidDataException("encountered check without (valid?) envRef");
                 if (serviceRef == null) throw new InvalidDataException("encountered check without (valid?) serviceRef");
-                if (interval == null || interval.Value <= TimeSpan.MinValue)
+                if (interval == null || interval.Value <= TimeSpan.Zero)
                     throw new InvalidDataException("encountered check without (valid?) interval");
 
                 var environment = environments.SingleOrDefault(e => e.Id == envRef.Value);

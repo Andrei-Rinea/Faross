@@ -31,7 +31,7 @@ namespace Faross.Models
             int maxContentLength = DefaultMaxContentLength) : base(id, environment, service, interval, conditions)
         {
             if (method == default(HttpMethod)) throw new ArgumentOutOfRangeException(nameof(method));
-            if (interval < TimeSpan.MinValue) throw new ArgumentOutOfRangeException(nameof(interval));
+            if (interval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(interval));
             if (maxContentLength <= 0) throw new ArgumentOutOfRangeException(nameof(maxContentLength));
 
             Url = url ?? throw new ArgumentNullException(nameof(url));

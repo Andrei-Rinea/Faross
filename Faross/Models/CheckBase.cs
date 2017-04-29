@@ -13,7 +13,7 @@ namespace Faross.Models
             TimeSpan interval,
             IReadOnlyCollection<ConditionBase> conditions) : base(id)
         {
-            if (interval <= TimeSpan.MinValue) throw new ArgumentOutOfRangeException(nameof(interval));
+            if (interval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(interval));
             if (conditions == null) throw new ArgumentNullException(nameof(conditions));
             if (!conditions.Any()) throw new ArgumentException("conditions is empty", nameof(conditions));
 

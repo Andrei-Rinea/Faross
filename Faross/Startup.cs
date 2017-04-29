@@ -1,5 +1,9 @@
-﻿using Faross.Services.Default;
+﻿using System;
+using System.Net;
+using Faross.Services;
+using Faross.Services.Default;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -33,12 +37,35 @@ namespace Faross
             services.AddMvc();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-//            var logger = NLog.LogManager.GetLogger("CheckLog");
-//            var checkLog = new CheckNLogAdapter(logger);
-//            services.AddSingleton<ICheckLog>(checkLog);
+            var mainLogger = NLog.LogManager.GetLogger("Main");
 
-            var xmlFileConfigRepo = new XmlFileConfigRepo(new FileService(), "Faross.config.xml");
-            var config = xmlFileConfigRepo.GetConfiguration();
+            try
+            {
+                var mainLog = new NLogAdapter(mainLogger);
+                services.AddSingleton<ILog>(mainLog);
+
+                var checkLogger = NLog.LogManager.GetLogger("CheckLog");
+                var checkLog = new CheckNLogAdapter(checkLogger);
+                services.AddSingleton<ICheckLog>(checkLog);
+
+                var xmlFileConfigRepo = new XmlFileConfigRepo(new FileService(), "Faross.config.xml");
+                var config = xmlFileConfigRepo.GetConfiguration();
+                services.AddSingleton<IConfigRepo>(xmlFileConfigRepo);
+
+                var timeService = new TimeService();
+                services.AddSingleton<ITimeService>(timeService);
+
+                var checkerFactory = new CheckerFactory(timeService);
+                var checkStats = new InMemoryCheckStats();
+                var scheduler = new ThreadedCheckScheduler(checkLog, checkStats, checkerFactory, mainLog);
+                services.AddSingleton<ICheckScheduler>(scheduler);
+
+                scheduler.Init(config);
+            }
+            catch (Exception ex)
+            {
+                mainLogger.Fatal(ex.ToString());
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -57,7 +84,24 @@ namespace Faross
             }
             else
             {
-                app.UseExceptionHandler("/Home/Error");
+                app.UseExceptionHandler(options =>
+                {
+                    options.Run(
+                        async context =>
+                        {
+                            context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+                            context.Response.ContentType = "text/html";
+                            var ex = context.Features.Get<IExceptionHandlerFeature>();
+                            if (ex != null)
+                            {
+                                var service = (ILog)app.ApplicationServices.GetService(typeof(ILog));
+                                service?.Error(ex.ToString());
+
+                                const string err = "Internal Server Error";
+                                await context.Response.WriteAsync(err).ConfigureAwait(false);
+                            }
+                        });
+                });
             }
 
             app.UseStaticFiles();

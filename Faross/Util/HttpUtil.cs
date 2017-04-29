@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -15,8 +16,16 @@ namespace Faross.Util
     {
         private class RequestState
         {
+            private volatile HttpWebResponse _response;
+
             public HttpWebRequest Request { get; set; }
-            public HttpWebResponse Response { get; set; }
+            public HttpWebResponse Response => _response;
+
+            public void SetResponse(HttpWebResponse response)
+            {
+                if (_response != null) throw new InvalidOperationException();
+                _response = response;
+            }
         }
 
         public enum GetContentOutcome
@@ -80,9 +89,7 @@ namespace Faross.Util
                 if (startTokenIndex == -1) return null;
                 var firstPos = startTokenIndex + CharacterSetStart.Length;
                 var endTokenIndex = value.IndexOf(CharacterSetStop, firstPos, StringComparison.OrdinalIgnoreCase);
-                var encodingName = endTokenIndex == -1 ?
-                    value.Substring(firstPos) :
-                    value.Substring(firstPos, endTokenIndex - firstPos + 1);
+                var encodingName = endTokenIndex == -1 ? value.Substring(firstPos) : value.Substring(firstPos, endTokenIndex - firstPos + 1);
                 try
                 {
                     return Encoding.GetEncoding(encodingName);
@@ -104,8 +111,8 @@ namespace Faross.Util
             if (!string.Equals(url.Scheme, "http", StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(url.Scheme, "https", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("url must be http(s)");
-            if (connectTimeout < TimeSpan.MinValue) throw new ArgumentOutOfRangeException(nameof(connectTimeout));
-            if (readTimeout < TimeSpan.MinValue) throw new ArgumentOutOfRangeException(nameof(readTimeout));
+            if (connectTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(connectTimeout));
+            if (readTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(readTimeout));
             if (bufferSize < 16)
                 throw new ArgumentOutOfRangeException(nameof(bufferSize),
                     "bufferSize must be equal or larger than 16");
@@ -120,14 +127,15 @@ namespace Faross.Util
             var httpWebRequest = WebRequest.CreateHttp(url);
             var requestState = new RequestState {Request = httpWebRequest};
             var connectTimer = Stopwatch.StartNew();
+
             httpWebRequest.BeginGetResponse(ar =>
             {
                 var state = (RequestState) ar.AsyncState;
                 var request = state.Request;
-                state.Response = (HttpWebResponse) request.EndGetResponse(ar);
+                state.SetResponse((HttpWebResponse) request.EndGetResponse(ar));
             }, requestState);
 
-            while (!httpWebRequest.HaveResponse && connectTimer.Elapsed < connectTimeout)
+            while (requestState.Response == null && connectTimer.Elapsed < connectTimeout)
                 Thread.Sleep(connectSleepMilliseconds);
 
             if (!httpWebRequest.HaveResponse)

@@ -1,4 +1,12 @@
-﻿$HEADER$namespace $NAMESPACE$
+﻿using Faross.Models;
+
+namespace Faross.Services.Default
 {
-  public class $CLASS$ {$END$}
+    public class InMemoryCheckStats : ICheckStats
+    {
+        public void AddCheckResult(CheckResult checkResult)
+        {
+
+        }
+    }
 }

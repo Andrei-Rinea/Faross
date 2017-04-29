@@ -15,7 +15,7 @@ namespace Faross.Services.Default
 
         public void LogCheck(CheckResult checkResult)
         {
-            throw new NotImplementedException();
+            
         }
     }
 }
