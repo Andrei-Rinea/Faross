@@ -41,5 +41,10 @@ namespace Faross.Models
                    otherCheck.Service.Equals(Service) &&
                    otherCheck.Interval == Interval;
         }
+
+        public override string ToString()
+        {
+            return $"[{Id}, {GetType()}]";
+        }
     }
 }

@@ -66,5 +66,10 @@ namespace Faross.Models
                    otherCheck.ReadTimeout == ReadTimeout &&
                    otherCheck.Conditions.Equivalent(Conditions);
         }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} ({Method} {Url})";
+        }
     }
 }

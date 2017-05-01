@@ -42,5 +42,15 @@ namespace Faross.Models
         {
             return HashCodeUtil.GetCombinedHash(Check, Time, Outcome, Details);
         }
+
+        public bool SameStatus(CheckResult other)
+        {
+            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (ReferenceEquals(this, other)) return true;
+            return other.Check.Equals(Check) &&
+                   other.Time != Time &&
+                   other.Outcome == Outcome &&
+                   other.Details.Equivalent(Details);
+        }
     }
 }
