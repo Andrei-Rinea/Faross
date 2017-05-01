@@ -15,25 +15,33 @@ namespace Faross.Tests.Models
         private readonly CheckResult _checkResultC1;
         private readonly CheckResult _checkResultD1;
 
+        private static readonly Environment Env = new Environment("env", 1);
+        private static readonly Service Srv = new Service(1, "srv", new List<Environment> {Env});
+        private static readonly HttpStatusCondition Cnd = new HttpStatusCondition("status", true, HttpStatusCondition.Operator.Equal, 200);
+        private static readonly HttpCheck Ck1 = new HttpCheck(1, Env, Srv, TimeSpan.FromMinutes(15), new Uri("http://localhost"), new List<HttpCheckCondition> {Cnd}, HttpCheck.HttpMethod.Get);
+        private static readonly ConditionResultDetail Rs1 = new ConditionResultDetail("status", true, "");
+        private static readonly ConditionResultDetail Rs2 = new ConditionResultDetail("status", false, "Bad Gateway");
+
         public CheckResultTests()
         {
-            var env = new Environment("env", 1);
-            var srv = new Service(1, "srv", new List<Environment> {env});
-            var cnd = new HttpStatusCondition("status", true, HttpStatusCondition.Operator.Equal, 200);
-            var ck1 = new HttpCheck(1, env, srv, TimeSpan.FromMinutes(15), new Uri("http://localhost"), new List<HttpCheckCondition> {cnd}, HttpCheck.HttpMethod.Get);
-            var ck2 = new HttpCheck(2, env, srv, TimeSpan.FromMinutes(15), new Uri("http://remotehost"), new List<HttpCheckCondition> {cnd}, HttpCheck.HttpMethod.Get);
-            var rs1 = new ConditionResultDetail("status", true, "");
-            var rs2 = new ConditionResultDetail("status", false, "Bad Gateway");
+            var ck2 = new HttpCheck(2, Env, Srv, TimeSpan.FromMinutes(15), new Uri("http://remotehost"), new List<HttpCheckCondition> {Cnd}, HttpCheck.HttpMethod.Get);
             var rs3 = new ConditionResultDetail("status", true, "Good but slow");
 
             var now = DateTimeOffset.UtcNow;
-            
-            _checkResultA1 = new CheckResult(ck1, now, CheckOutcome.Success, new List<ConditionResultDetail> {rs1});
-            _checkResultA1Clone = new CheckResult(ck1, now, CheckOutcome.Success, new List<ConditionResultDetail> {rs1});
-            _checkResultA2 = new CheckResult(ck1, now.AddHours(1), CheckOutcome.Success, new List<ConditionResultDetail> {rs1});
-            _checkResultB1 = new CheckResult(ck2, now, CheckOutcome.Success, new List<ConditionResultDetail> {rs1});
-            _checkResultC1 = new CheckResult(ck1, now.AddHours(1), CheckOutcome.Fail, new List<ConditionResultDetail>{rs2});
-            _checkResultD1 = new CheckResult(ck1, now.AddHours(1), CheckOutcome.Success, new List<ConditionResultDetail>{rs3});
+
+            _checkResultA1 = CreateCheckResult();
+            _checkResultA1Clone = new CheckResult(Ck1, now, CheckOutcome.Success, new List<ConditionResultDetail> {Rs1});
+            _checkResultA2 = new CheckResult(Ck1, now.AddHours(1), CheckOutcome.Success, new List<ConditionResultDetail> {Rs1});
+            _checkResultB1 = new CheckResult(ck2, now, CheckOutcome.Success, new List<ConditionResultDetail> {Rs1});
+            _checkResultC1 = new CheckResult(Ck1, now.AddHours(1), CheckOutcome.Fail, new List<ConditionResultDetail> {Rs2});
+            _checkResultD1 = new CheckResult(Ck1, now.AddHours(1), CheckOutcome.Success, new List<ConditionResultDetail> {rs3});
+        }
+
+        internal static CheckResult CreateCheckResult(DateTimeOffset? now = null, bool success = true)
+        {
+            var outcome = success ? CheckOutcome.Success : CheckOutcome.Fail;
+            var res = success ? Rs1 : Rs2;
+            return new CheckResult(Ck1, now ?? DateTimeOffset.UtcNow, outcome, new List<ConditionResultDetail> {res});
         }
 
         [Fact]

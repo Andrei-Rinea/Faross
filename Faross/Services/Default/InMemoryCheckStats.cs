@@ -16,6 +16,8 @@ namespace Faross.Services.Default
 
         public void AddCheckResult(CheckResult checkResult)
         {
+            if (checkResult == null) throw new ArgumentNullException(nameof(checkResult));
+
             Statistics stats;
             var check = checkResult.Check;
             var haveStats = _allStats.TryGetValue(check, out stats);
