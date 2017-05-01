@@ -67,7 +67,7 @@ namespace Faross.Services.Default
             {
                 var checkInfo = (CheckRunnerInfo) obj;
                 var check = checkInfo.Check;
-                var checker = _checkerFactory.GetChecker(check.Type);
+                var checker = _checkerFactory.GetChecker(check);
 
                 var checkTimer = new Stopwatch();
                 var sleepTimer = new Stopwatch();

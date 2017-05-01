@@ -23,8 +23,6 @@ namespace Faross.Models
             Conditions = conditions;
         }
 
-        public abstract CheckType Type { get; }
-
         public Environment Environment { get; }
         public Service Service { get; }
         public TimeSpan Interval { get; }
@@ -36,7 +34,7 @@ namespace Faross.Models
         {
             var otherCheck = other as CheckBase;
             return otherCheck != null &&
-                   otherCheck.Type == Type &&
+                   otherCheck.GetType() == GetType() &&
                    otherCheck.Environment.Equals(Environment) &&
                    otherCheck.Service.Equals(Service) &&
                    otherCheck.Interval == Interval;

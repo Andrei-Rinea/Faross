@@ -27,24 +27,27 @@ namespace Faross.Services.Default
             else
             {
                 var previousResult = stats.CurrentResult;
-                if (checkResult.SameStatus(previousResult)) {
+                if (checkResult.SameStatus(previousResult))
+                {
                     var @for = checkResult.Time - previousResult.Time;
                     stats = new Statistics(checkResult, @for);
-                } else {
+                }
+                else
+                {
                     stats = new Statistics(checkResult, previousResult);
                 }
-                _allStats[check] = stats;
             }
+            _allStats[check] = stats;
         }
 
         public IEnumerable<Statistics> GetAllStats()
         {
-            return _allStats.Select(p=>p.Value).ToList().AsReadOnly();
+            return _allStats.Select(p => p.Value).ToList().AsReadOnly();
         }
 
         public Statistics GetStat(CheckBase check)
         {
-            if (check==null) throw new ArgumentNullException(nameof(check));
+            if (check == null) throw new ArgumentNullException(nameof(check));
             return _allStats[check];
         }
     }

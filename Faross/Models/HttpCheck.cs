@@ -43,8 +43,6 @@ namespace Faross.Models
             if (Conditions.Any(c => c == null)) throw new ArgumentException("conditions contains a null");
         }
 
-        public override CheckType Type => CheckType.HttpCall;
-
         public Uri Url { get; }
         public HttpMethod Method { get; }
         public TimeSpan ConnectTimeout { get; }

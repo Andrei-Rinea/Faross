@@ -4,6 +4,6 @@ namespace Faross.Services
 {
     public interface ICheckerFactory
     {
-        IChecker GetChecker(CheckType type);
+        IChecker GetChecker(CheckBase check);
     }
 }

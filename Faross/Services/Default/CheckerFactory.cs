@@ -13,19 +13,12 @@ namespace Faross.Services.Default
             _timeService = timeService ?? throw new ArgumentNullException(nameof(timeService));
         }
 
-        public IChecker GetChecker(CheckType type)
+        public IChecker GetChecker(CheckBase check)
         {
-            switch (type)
-            {
-                case CheckType.Ping:
-                    throw new NotImplementedException();
-                case CheckType.HttpCall:
-                    return new HttpChecker(_timeService);
-                // ReSharper disable once RedundantCaseLabel
-                case CheckType.Undefined:
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-            }
+            if (check == null) throw new ArgumentNullException(nameof(check));
+            var type = check.GetType();
+            if (type == typeof(HttpCheck)) return new HttpChecker(_timeService);
+            throw new ArgumentOutOfRangeException($"unknown check type {type}");
         }
     }
 }
