@@ -19,7 +19,7 @@ namespace Faross.Tests.Services.Default
         [Fact]
         public void AddCheckResult_RejectsNull()
         {
-            Assert.Throws<ArgumentNullException>(()=> _systemUnderTest.AddCheckResult(null));
+            Assert.Throws<ArgumentNullException>(() => _systemUnderTest.AddCheckResult(null));
         }
 
         [Fact]
@@ -70,7 +70,6 @@ namespace Faross.Tests.Services.Default
         [Fact]
         public void AddCheckResult_UpdatesExistingStats_ForDifferentStatus()
         {
-
         }
     }
 }

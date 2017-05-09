@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -54,19 +53,26 @@ namespace Faross.Util
                 GetContentOutcome outcome,
                 int? status = null,
                 IReadOnlyCollection<KeyValuePair<string, string>> headers = null,
-                Exception exception = null) : this()
+                Exception exception = null,
+                TimeSpan? timeToFirstByte = null,
+                TimeSpan? timeToLastByte = null) : this()
             {
                 // TODO : Checks
+
                 Outcome = outcome;
+                Status = status;
                 Headers = headers ?? Headers;
                 Exception = exception;
-                Status = status;
+                TimeToFirstByte = timeToFirstByte;
+                TimeToLastByte = timeToLastByte;
             }
 
             public GetContentResult(
                 IReadOnlyCollection<KeyValuePair<string, string>> headers,
                 int status,
-                byte[] content) : this(GetContentOutcome.Ok, status, headers)
+                byte[] content,
+                TimeSpan timeToFirstByte,
+                TimeSpan timeToLastByte) : this(GetContentOutcome.Ok, status, headers, null, timeToFirstByte, timeToLastByte)
             {
                 if (Content == null) throw new ArgumentNullException(nameof(content));
                 Content = content;
@@ -77,6 +83,8 @@ namespace Faross.Util
             public Exception Exception { get; }
             public GetContentOutcome Outcome { get; }
             public int? Status { get; }
+            public TimeSpan? TimeToFirstByte { get; }
+            public TimeSpan? TimeToLastByte { get; }
 
             public bool Ok => Outcome == GetContentOutcome.Ok;
 
@@ -126,7 +134,7 @@ namespace Faross.Util
 
             var httpWebRequest = WebRequest.CreateHttp(url);
             var requestState = new RequestState {Request = httpWebRequest};
-            var connectTimer = Stopwatch.StartNew();
+            var timer = Stopwatch.StartNew();
 
             httpWebRequest.BeginGetResponse(ar =>
             {
@@ -135,7 +143,7 @@ namespace Faross.Util
                 state.SetResponse((HttpWebResponse) request.EndGetResponse(ar));
             }, requestState);
 
-            while (requestState.Response == null && connectTimer.Elapsed < connectTimeout)
+            while (requestState.Response == null && timer.Elapsed < connectTimeout)
                 Thread.Sleep(connectSleepMilliseconds);
 
             if (!httpWebRequest.HaveResponse)
@@ -145,7 +153,10 @@ namespace Faross.Util
             }
             else
             {
+                TimeSpan? timeToFirstByte = timer.Elapsed;
+                TimeSpan? timeToLastByte = null;
                 var response = requestState.Response;
+                // ReSharper disable once PossibleNullReferenceException
                 var status = (int) response.StatusCode;
 
                 using (var memoryStream = new MemoryStream())
@@ -171,6 +182,7 @@ namespace Faross.Util
                                     break;
                             }
                             // ReSharper restore AccessToDisposedClosure
+                            timeToLastByte = timer.Elapsed;
                         }
                         catch (Exception e)
                         {
@@ -184,11 +196,11 @@ namespace Faross.Util
                     if (!contentReadInTime)
                     {
                         cancellationTokenSource.Cancel();
-                        return new GetContentResult(GetContentOutcome.ReadTimeout, status, headers);
+                        return new GetContentResult(GetContentOutcome.ReadTimeout, status, headers, null, timeToFirstByte, timeToLastByte);
                     }
                     return contentReadException != null
-                        ? new GetContentResult(GetContentOutcome.ReadError, status, headers, contentReadException)
-                        : new GetContentResult(headers, status, memoryStream.ToArray());
+                        ? new GetContentResult(GetContentOutcome.ReadError, status, headers, contentReadException, timeToFirstByte, timeToLastByte)
+                        : new GetContentResult(headers, status, memoryStream.ToArray(), timeToFirstByte.Value, timeToLastByte.Value);
                 }
             }
         }

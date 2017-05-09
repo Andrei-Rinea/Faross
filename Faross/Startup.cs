@@ -59,6 +59,7 @@ namespace Faross
                 var checkStats = new InMemoryCheckStats();
                 var scheduler = new ThreadedCheckScheduler(checkLog, checkStats, checkerFactory, mainLog);
                 services.AddSingleton<ICheckScheduler>(scheduler);
+                services.AddSingleton<ICheckStats>(checkStats);
 
                 scheduler.Init(config);
             }

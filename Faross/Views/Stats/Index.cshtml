@@ -1,0 +1,10 @@
+@model Faross.ViewModels.Stats.IndexViewModel
+
+@foreach (var stat in Model.Stats)
+{
+    <div>
+        env:  @stat.Check.Environment.Name <br/>
+        srv: @stat.Check.Service.Name <br/>
+        res: @stat.CurrentResult.Outcome <br/>
+    </div>
+}
