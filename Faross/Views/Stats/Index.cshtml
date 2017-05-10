@@ -1,10 +1,83 @@
+@using Faross.Models
 @model Faross.ViewModels.Stats.IndexViewModel
 
-@foreach (var stat in Model.Stats)
-{
-    <div>
-        env:  @stat.Check.Environment.Name <br/>
-        srv: @stat.Check.Service.Name <br/>
-        res: @stat.CurrentResult.Outcome <br/>
-    </div>
-}
+<div id="statContainer">
+    @foreach (var envStat in Model.EnvStats)
+    {
+        <div class="environment">
+            <div class="envName">
+                <span>@envStat.Key.Name</span>
+            </div>
+
+            @foreach (var stat in envStat.Value)
+            {
+                string statusName;
+                switch (stat.CurrentResult.Outcome)
+                {
+                    case CheckOutcome.Success:
+                        statusName = "up";
+                        break;
+                    case CheckOutcome.Fail:
+                        statusName = "down";
+                        break;
+                    // ReSharper disable RedundantCaseLabel
+                    case CheckOutcome.Unknown:
+                    case CheckOutcome.Undeterminate:
+                    // ReSharper restore RedundantCaseLabel
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                <div class="@statusName check">
+                    <table id="stats">
+                        <tr>
+                            <td>
+                                <strong>service</strong>
+                            </td>
+                            <td>
+                                <strong>@stat.Check.Service.Name</strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <strong>status</strong>
+                            </td>
+                            <td>
+                                <em>
+                                    @stat.CurrentResult.Outcome <br/>
+                                </em>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <em>last checked</em>
+                            </td>
+                            <td>
+                                @stat.CurrentResult.Time
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td>
+                                <em>next check</em>
+                            </td>
+                            <td>
+                                @(stat.CurrentResult.Time + stat.Check.Interval)
+                            </td>
+                        </tr>
+                    </table>
+
+                    @if (stat.ChangeType == Statistics.Variation.DifferentOutcome)
+                    {
+                        <em>service is @statusName for @stat.ChangeSince</em>
+                        <br/>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -2,6 +2,7 @@
 <config>
     <environments>
         <environment id="1" name="SharedHosting"/>
+        <environment id="2" name="Production"/>
     </environments>
 
     <services>
@@ -10,13 +11,34 @@
                 <envRef id="1"/>
             </runsOn>
         </service>
+        <service id="2" name="Photo blog">
+            <runsOn>
+                <envRef id="1"/>
+            </runsOn>
+        </service>
+        <service id="3" name="Google Search">
+            <runsOn>
+                <envRef id="2"/>
+            </runsOn>
+        </service>
     </services>
 
     <checks>
-        <check id="1" type="HttpCall" method="Get" envRef="1" serviceRef="1" url="http://blog.andrei.rinea.ro" interval="00:05:00">
+        <check id="1" type="HttpCall" method="Get" envRef="1" serviceRef="1" url="http://blog.andrei.rinea.ro" interval="00:02:00">
             <conditions>
                 <statusCheck name="status_OK" operator="Equal">200</statusCheck>
-                <!--<contentCheck name="no_error" operator="DoesNotContain" arguments="IgnoreCase">error</contentCheck>-->
+            </conditions>
+        </check>
+
+        <check id="2" type="HttpCall" method="Get" envRef="1" serviceRef="2" url="http://foto.andrei.rinea.ro" interval="00:03:00">
+            <conditions>
+                <statusCheck name="status_OK" operator="Equal">200</statusCheck>
+            </conditions>
+        </check>
+
+        <check id="3" type="HttpCall" method="Get" envRef="2" serviceRef="3" url="http://www.google.com" interval="00:05:00">
+            <conditions>
+                <statusCheck name="status_OK" operator="Equal">200</statusCheck>
             </conditions>
         </check>
     </checks>

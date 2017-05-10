@@ -7,6 +7,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Faross", "Faross/Faross.csp
 EndProject
 Project("{FBDFD33A-BB45-454B-8710-BA4567A2B02C}") = "Faross.Tests", "Faross.Tests\Faross.Tests.csproj", "{E15F9374-8174-4D4D-B507-9EED3FA5D1E5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{D686C174-8B54-4741-8019-7FDE4615EBC2}"
+ProjectSection(SolutionItems) = preProject
+	readme.md = readme.md
+EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
