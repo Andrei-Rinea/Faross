@@ -1,5 +1,5 @@
 language: csharp
 solution: Faross.sln
 mono: none
-dotnet: 1.0.1
+dotnet: 2.1.301
 dist: trusty
